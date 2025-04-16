@@ -1,0 +1,49 @@
+module tb_traffic_light_controller;
+
+// Inputs to the DUT (Device Under Test)
+reg clk;
+reg reset;
+
+// Outputs from the DUT
+wire NS_R, NS_Y, NS_G, EW_R, EW_Y, EW_G;
+
+// Instantiate the Traffic Light Controller module
+traffic_light_controller uut (
+    .clk(clk),
+    .reset(reset),
+    .NS_R(NS_R),
+    .NS_Y(NS_Y),
+    .NS_G(NS_G),
+    .EW_R(EW_R),
+    .EW_Y(EW_Y),
+    .EW_G(EW_G)
+);
+
+// Clock generation (3 Hz clock)
+always begin
+    #5 clk = ~clk;  // 10ns period, so 5ns high, 5ns low (3Hz clock)
+end
+
+// Initial block to apply reset and test the controller
+initial begin
+    // Initialize signals
+    clk = 0;
+    reset = 1;  // Start with reset active
+
+    // Apply reset for a few clock cycles
+    #20 reset = 0;  // Deassert reset after 20ns
+
+    // Let the simulation run for a while to see the state transitions
+    #500;  // Run for 500ns (enough time for a few cycles)
+
+    // Finish the simulation
+    $finish;
+end
+
+// Monitor outputs (optional)
+initial begin
+    $monitor("At time %t: NS_R = %b, NS_Y = %b, NS_G = %b, EW_R = %b, EW_Y = %b, EW_G = %b", 
+             $time, NS_R, NS_Y, NS_G, EW_R, EW_Y, EW_G);
+end
+
+endmodule
