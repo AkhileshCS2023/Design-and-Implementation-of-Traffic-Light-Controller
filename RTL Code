@@ -1,0 +1,106 @@
+module traffic_light_controller (
+    input clk,               // Clock signal (3 Hz recommended)
+    input reset,             // Reset signal to initialize the FSM
+    output reg NS_R,         // North-South Red Light
+    output reg NS_Y,         // North-South Yellow Light
+    output reg NS_G,         // North-South Green Light
+    output reg EW_R,         // East-West Red Light
+    output reg EW_Y,         // East-West Yellow Light
+    output reg EW_G          // East-West Green Light
+);
+
+// State encoding
+parameter S0 = 3'd0, // NS Green
+          S1 = 3'd1, // NS Yellow
+          S2 = 3'd2, // All Red
+          S3 = 3'd3, // EW Green
+          S4 = 3'd4, // EW Yellow
+          S5 = 3'd5; // All Red again
+
+reg [2:0] state, next_state;  // State and next state
+reg [3:0] counter;            // Counter for delays (4-bit for up to 15)
+
+parameter delay_S0 = 15, // 5 seconds (5 × 3 Hz cycles)
+          delay_S1 = 3,  // 1 second
+          delay_S2 = 3,  // 1 second
+          delay_S3 = 15, // 5 seconds
+          delay_S4 = 3,  // 1 second
+          delay_S5 = 3;  // 1 second
+
+
+reg [3:0] delay;  // Delay value for the current state
+
+// State transition logic
+always @(posedge clk or posedge reset) begin
+    if (reset) begin
+        state <= S0;  // Reset to initial state (NS Green)
+        counter <= 0; // Reset the counter
+    end else begin
+        if (counter == delay) begin
+            state <= next_state;   // Transition to next state
+            counter <= 0;          // Reset the counter
+        end else begin
+            counter <= counter + 1;  // Increment the counter
+        end
+    end
+end
+
+// Next state logic based on current state
+always @(*) begin
+    case (state)
+        S0: next_state = S1; // From NS Green to NS Yellow
+        S1: next_state = S2; // From NS Yellow to All Red
+        S2: next_state = S3; // From All Red to EW Green
+        S3: next_state = S4; // From EW Green to EW Yellow
+        S4: next_state = S5; // From EW Yellow to All Red
+        S5: next_state = S0; // From All Red back to NS Green
+        default: next_state = S0; // Default to NS Green
+    endcase
+end
+
+// Output logic based on current state
+always @(*) begin
+    // Default all lights OFF
+    NS_R = 0;
+    NS_Y = 0;
+    NS_G = 0;
+
+    EW_R = 0;
+    EW_Y = 0;
+    EW_G = 0;
+
+    case (state)
+        S0: begin
+            NS_G = 1; // NS Green
+            EW_R = 1; // EW Red
+            delay = delay_S0; // Set delay for NS Green
+        end
+        S1: begin
+            NS_Y = 1; // NS Yellow
+            EW_R = 1; // EW Red
+            delay = delay_S1; // Set delay for NS Yellow
+        end
+        S2: begin
+            NS_R = 1; // NS Red
+            EW_R = 1; // EW Red
+            delay = delay_S2; // Set delay for All Red
+        end
+        S3: begin
+            NS_R = 1; // NS Red
+            EW_G = 1; // EW Green
+            delay = delay_S3; // Set delay for EW Green
+        end
+        S4: begin
+            NS_R = 1; // NS Red
+            EW_Y = 1; // EW Yellow
+            delay = delay_S4; // Set delay for EW Yellow
+        end
+        S5: begin
+            NS_R = 1; // NS Red
+            EW_R = 1; // EW Red
+            delay = delay_S5; // Set delay for All Red
+        end
+    endcase
+end
+
+endmodule
